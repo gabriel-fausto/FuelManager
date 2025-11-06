@@ -26,13 +26,18 @@
         </form>
       </div>
       
-      <!-- Step 2: Reset password (hidden initially) -->
+      <!-- Step 2: Show hint only (hidden initially) -->
       <div id="step2" style="display: none;">
         <div class="form-group">
           <label>Dica de senha:</label>
           <p id="dicaSenhaTexto" style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-weight: bold;"></p>
         </div>
         
+        <button id="naoLembroBtn" class="btn btn-primary btn-block">Ainda não lembro</button>
+      </div>
+      
+      <!-- Step 3: Reset password (hidden initially) -->
+      <div id="step3" style="display: none;">
         <form id="redefinirSenhaForm">
           <div class="form-group">
             <label for="novaSenha">Nova senha (mínimo 6 caracteres):</label>
@@ -87,7 +92,14 @@
       }
     });
     
-    // Step 2: Reset password
+    // Step 2: User still doesn't remember, show reset form
+    document.getElementById('naoLembroBtn').addEventListener('click', () => {
+      document.getElementById('step2').style.display = 'none';
+      document.getElementById('step3').style.display = 'block';
+      mostrarMensagem('Preencha os campos abaixo para redefinir sua senha', 'info');
+    });
+    
+    // Step 3: Reset password
     document.getElementById('redefinirSenhaForm').addEventListener('submit', async (e) => {
       e.preventDefault();
       
