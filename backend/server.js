@@ -26,6 +26,11 @@ function getMockCEPData(cep) {
 
 // Helper function to fetch from Brasil API
 async function fetchBrasilAPI(url) {
+  // Validate that URL is from Brasil API only (SSRF protection)
+  if (!url.startsWith('https://brasilapi.com.br/')) {
+    throw new Error('Only Brasil API URLs are allowed');
+  }
+  
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Request timeout'));
