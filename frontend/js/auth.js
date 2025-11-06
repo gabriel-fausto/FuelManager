@@ -60,6 +60,8 @@ function formatarMoeda(valor) {
 
 // Format date
 function formatarData(dataISO) {
+  if (!dataISO) return 'Data inválida';
   const data = new Date(dataISO);
+  if (isNaN(data.getTime())) return 'Data inválida';
   return data.toLocaleDateString('pt-BR');
 }

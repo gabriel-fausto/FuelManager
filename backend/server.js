@@ -1,5 +1,6 @@
 const express = require('express');
 const cors = require('cors');
+const https = require('https');
 
 const app = express();
 const PORT = 3000;
@@ -25,7 +26,6 @@ function getMockCEPData(cep) {
 
 // Helper function to fetch from Brasil API
 async function fetchBrasilAPI(url) {
-  const https = require('https');
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       reject(new Error('Request timeout'));

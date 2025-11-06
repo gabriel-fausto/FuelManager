@@ -158,9 +158,9 @@
       const lista = document.getElementById('listaAbastecimentos');
       const emptyState = document.getElementById('emptyState');
 
-      // Sort by date descending
+      // Sort by date descending (dates are in ISO format YYYY-MM-DD, so string comparison works)
       const ordenados = [...abastecimentosFiltrados].sort((a, b) => 
-        new Date(b.data) - new Date(a.data)
+        b.data.localeCompare(a.data)
       );
 
       // Update totalizadores
