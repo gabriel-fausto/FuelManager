@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - FuelManager Pro</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>FuelManager Pro</h1>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="abastecimento.html">Registrar</a></li>
+          <li><a href="meus-abastecimentos.html">Meus Abastecimentos</a></li>
+          <li><a href="estatisticas.html">Estatísticas</a></li>
+          <li><a href="clima.html">Clima</a></li>
+          <li><a href="#" onclick="sair(); return false;">Sair</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2 id="welcomeMessage">Bem-vindo!</h2>
+    </div>
+
+    <div class="dashboard-cards">
+      <div class="dashboard-card">
+        <h3>Total de Abastecimentos</h3>
+        <div class="valor" id="totalAbastecimentos">0</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Total Gasto</h3>
+        <div class="valor" id="totalGasto">R$ 0,00</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Total de Litros</h3>
+        <div class="valor" id="totalLitros">0 L</div>
+      </div>
+
+      <div class="dashboard-card">
+        <h3>Consumo Médio</h3>
+        <div class="valor" id="consumoMedio">0 Km/L</div>
+      </div>
+    </div>
+
+    <div class="card text-center">
+      <h3>Comece registrando seu primeiro abastecimento!</h3>
+      <a href="abastecimento.html" class="btn btn-primary" style="margin-top: 15px;">Registrar Abastecimento</a>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // Verify authentication
+    const usuario = verificarAutenticacao();
+    if (!usuario) {
+      window.location.href = 'index.html';
+    }
+
+    // Display welcome message
+    document.getElementById('welcomeMessage').textContent = `Bem-vindo, ${usuario.nome}!`;
+
+    // Get fuel records
+    const abastecimentos = obterAbastecimentos(usuario.id);
+
+    // Calculate totals
+    const totalAbastecimentos = abastecimentos.length;
+    const totalGasto = abastecimentos.reduce((sum, a) => sum + parseFloat(a.valorTotal), 0);
+    const totalLitros = abastecimentos.reduce((sum, a) => sum + parseFloat(a.litros), 0);
+    
+    // Calculate average consumption (only from full tank records)
+    const abastecimentosTanqueCheio = abastecimentos.filter(a => a.tanqueCheio && a.consumoMedio);
+    const consumoMedio = abastecimentosTanqueCheio.length > 0
+      ? abastecimentosTanqueCheio.reduce((sum, a) => sum + parseFloat(a.consumoMedio), 0) / abastecimentosTanqueCheio.length
+      : 0;
+
+    // Display values
+    document.getElementById('totalAbastecimentos').textContent = totalAbastecimentos;
+    document.getElementById('totalGasto').textContent = formatarMoeda(totalGasto);
+    document.getElementById('totalLitros').textContent = totalLitros.toFixed(2) + ' L';
+    document.getElementById('consumoMedio').textContent = consumoMedio.toFixed(2) + ' Km/L';
+  </script>
+</body>
+</html>

@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - FuelManager Pro</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card auth-card">
+      <h1 class="text-center mb-20">FuelManager Pro</h1>
+      <h2 class="text-center mb-20">Login</h2>
+      
+      <div id="mensagem"></div>
+      
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email:</label>
+          <input type="email" id="email" name="email" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="senha">Senha:</label>
+          <input type="password" id="senha" name="senha" required>
+        </div>
+        
+        <button type="submit" class="btn btn-primary btn-block">Entrar</button>
+      </form>
+      
+      <div class="text-center mt-20">
+        <a href="recuperar-senha.html" class="link">Esqueci minha senha</a>
+        <br><br>
+        <span>Não tem conta? </span>
+        <a href="cadastro.html" class="link">Cadastre-se</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/auth.js"></script>
+  <script>
+    // Check if already logged in
+    const usuarioLogado = localStorage.getItem('usuarioLogado');
+    if (usuarioLogado) {
+      window.location.href = 'dashboard.html';
+    }
+    
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      const senha = document.getElementById('senha').value;
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/usuario/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, senha })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          localStorage.setItem('usuarioLogado', JSON.stringify(data));
+          window.location.href = 'dashboard.html';
+        } else {
+          mostrarMensagem(data.mensagem, 'error');
+        }
+      } catch (error) {
+        mostrarMensagem('Erro ao conectar com o servidor', 'error');
+      }
+    });
+  </script>
+</body>
+</html>
