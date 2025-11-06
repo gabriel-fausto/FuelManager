@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Recuperar Senha - FuelManager Pro</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div class="container">
+    <div class="card auth-card">
+      <h1 class="text-center mb-20">FuelManager Pro</h1>
+      <h2 class="text-center mb-20">Recuperar Senha</h2>
+      
+      <div id="mensagem"></div>
+      
+      <!-- Step 1: Get password hint -->
+      <div id="step1">
+        <form id="buscarDicaForm">
+          <div class="form-group">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required>
+          </div>
+          
+          <button type="submit" class="btn btn-primary btn-block">Buscar Dica</button>
+        </form>
+      </div>
+      
+      <!-- Step 2: Reset password (hidden initially) -->
+      <div id="step2" style="display: none;">
+        <div class="form-group">
+          <label>Dica de senha:</label>
+          <p id="dicaSenhaTexto" style="background: #f8f9fa; padding: 15px; border-radius: 5px; font-weight: bold;"></p>
+        </div>
+        
+        <form id="redefinirSenhaForm">
+          <div class="form-group">
+            <label for="novaSenha">Nova senha (mínimo 6 caracteres):</label>
+            <input type="password" id="novaSenha" name="novaSenha" required minlength="6">
+          </div>
+          
+          <div class="form-group">
+            <label for="confirmarNovaSenha">Confirmar nova senha:</label>
+            <input type="password" id="confirmarNovaSenha" name="confirmarNovaSenha" required minlength="6">
+          </div>
+          
+          <button type="submit" class="btn btn-success btn-block">Redefinir Senha</button>
+        </form>
+      </div>
+      
+      <div class="text-center mt-20">
+        <a href="index.html" class="link">Voltar para o login</a>
+      </div>
+    </div>
+  </div>
+  
+  <script src="js/auth.js"></script>
+  <script>
+    let emailAtual = '';
+    
+    // Step 1: Get password hint
+    document.getElementById('buscarDicaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const email = document.getElementById('email').value;
+      emailAtual = email;
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/usuario/recuperar-dica`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          document.getElementById('dicaSenhaTexto').textContent = data.dicaSenha;
+          document.getElementById('step1').style.display = 'none';
+          document.getElementById('step2').style.display = 'block';
+          mostrarMensagem('Dica de senha encontrada!', 'success');
+        } else {
+          mostrarMensagem(data.mensagem, 'error');
+        }
+      } catch (error) {
+        mostrarMensagem('Erro ao conectar com o servidor', 'error');
+      }
+    });
+    
+    // Step 2: Reset password
+    document.getElementById('redefinirSenhaForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const novaSenha = document.getElementById('novaSenha').value;
+      const confirmarNovaSenha = document.getElementById('confirmarNovaSenha').value;
+      
+      // Frontend validations
+      if (novaSenha.length < 6) {
+        mostrarMensagem('A nova senha deve ter no mínimo 6 caracteres', 'error');
+        return;
+      }
+      
+      if (novaSenha !== confirmarNovaSenha) {
+        mostrarMensagem('As senhas não conferem', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE_URL}/usuario/redefinir-senha`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            email: emailAtual, 
+            novaSenha, 
+            confirmarSenha: confirmarNovaSenha 
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (response.ok) {
+          mostrarMensagem(data.mensagem, 'success');
+          setTimeout(() => {
+            window.location.href = 'index.html';
+          }, 2000);
+        } else {
+          mostrarMensagem(data.mensagem, 'error');
+        }
+      } catch (error) {
+        mostrarMensagem('Erro ao conectar com o servidor', 'error');
+      }
+    });
+  </script>
+</body>
+</html>

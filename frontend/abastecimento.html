@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registrar Abastecimento - FuelManager Pro</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>FuelManager Pro</h1>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="abastecimento.html">Registrar</a></li>
+          <li><a href="meus-abastecimentos.html">Meus Abastecimentos</a></li>
+          <li><a href="estatisticas.html">Estatísticas</a></li>
+          <li><a href="clima.html">Clima</a></li>
+          <li><a href="#" onclick="sair(); return false;">Sair</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Registrar Abastecimento</h2>
+      
+      <div id="mensagem"></div>
+      
+      <form id="abastecimentoForm">
+        <div class="form-group">
+          <label for="data">Data:</label>
+          <input type="date" id="data" name="data" required>
+        </div>
+
+        <div class="form-group">
+          <label for="posto">Nome do posto:</label>
+          <input type="text" id="posto" name="posto" required>
+        </div>
+
+        <div class="form-group">
+          <label for="cepPosto">CEP do posto:</label>
+          <div style="display: flex; gap: 10px;">
+            <input type="text" id="cepPosto" name="cepPosto" maxlength="8" placeholder="00000000" style="flex: 1;">
+            <button type="button" class="btn btn-secondary" onclick="buscarEnderecoPosto()">Buscar</button>
+          </div>
+        </div>
+
+        <div id="enderecoInfo" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+          <strong>Endereço:</strong> <span id="enderecoTexto"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="tipoCombustivel">Tipo de combustível:</label>
+          <select id="tipoCombustivel" name="tipoCombustivel" required>
+            <option value="">Selecione...</option>
+            <option value="Gasolina Comum">Gasolina Comum</option>
+            <option value="Gasolina Aditivada">Gasolina Aditivada</option>
+            <option value="Etanol">Etanol</option>
+            <option value="Diesel">Diesel</option>
+            <option value="Diesel S10">Diesel S10</option>
+            <option value="GNV">GNV</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="litros">Litros:</label>
+          <input type="number" id="litros" name="litros" step="0.01" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label for="precoPorLitro">Preço por litro (R$):</label>
+          <input type="number" id="precoPorLitro" name="precoPorLitro" step="0.01" min="0" required>
+        </div>
+
+        <div class="form-group">
+          <label for="valorTotal">Valor total (R$):</label>
+          <input type="number" id="valorTotal" name="valorTotal" step="0.01" min="0" readonly style="background: #f8f9fa;">
+        </div>
+
+        <div class="form-group">
+          <label for="quilometragem">Quilometragem (Km):</label>
+          <input type="number" id="quilometragem" name="quilometragem" step="0.1" min="0" required>
+        </div>
+
+        <div class="form-group checkbox-group">
+          <input type="checkbox" id="tanqueCheio" name="tanqueCheio">
+          <label for="tanqueCheio" style="margin-bottom: 0;">Tanque cheio</label>
+        </div>
+
+        <div class="form-group" id="consumoMedioGroup" style="display: none;">
+          <label for="consumoMedio">Consumo médio (Km/L):</label>
+          <input type="number" id="consumoMedio" name="consumoMedio" step="0.01" readonly style="background: #f8f9fa;">
+        </div>
+
+        <div class="form-group">
+          <label for="observacoes">Observações:</label>
+          <textarea id="observacoes" name="observacoes"></textarea>
+        </div>
+
+        <button type="submit" class="btn btn-success btn-block">Salvar Abastecimento</button>
+        <a href="meus-abastecimentos.html" class="btn btn-secondary btn-block" style="margin-top: 10px;">Cancelar</a>
+      </form>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // Verify authentication
+    const usuario = verificarAutenticacao();
+    if (!usuario) {
+      window.location.href = 'index.html';
+    }
+
+    // Set max date to today
+    const hoje = new Date().toISOString().split('T')[0];
+    document.getElementById('data').max = hoje;
+    document.getElementById('data').value = hoje;
+
+    // Calculate total value when litros or precoPorLitro changes
+    function calcularValorTotal() {
+      const litros = parseFloat(document.getElementById('litros').value) || 0;
+      const precoPorLitro = parseFloat(document.getElementById('precoPorLitro').value) || 0;
+      const valorTotal = litros * precoPorLitro;
+      document.getElementById('valorTotal').value = valorTotal.toFixed(2);
+    }
+
+    document.getElementById('litros').addEventListener('input', calcularValorTotal);
+    document.getElementById('precoPorLitro').addEventListener('input', calcularValorTotal);
+
+    // Calculate consumption when tanqueCheio is checked
+    function calcularConsumo() {
+      const tanqueCheio = document.getElementById('tanqueCheio').checked;
+      const consumoMedioGroup = document.getElementById('consumoMedioGroup');
+      
+      if (tanqueCheio) {
+        const quilometragemAtual = parseFloat(document.getElementById('quilometragem').value) || 0;
+        const litrosAtuais = parseFloat(document.getElementById('litros').value) || 0;
+        
+        // Get last full tank record
+        const abastecimentos = obterAbastecimentos(usuario.id);
+        const ultimoTanqueCheio = abastecimentos
+          .filter(a => a.tanqueCheio)
+          .sort((a, b) => new Date(b.data) - new Date(a.data))[0];
+        
+        if (ultimoTanqueCheio && quilometragemAtual > 0 && litrosAtuais > 0) {
+          const kmPercorridos = quilometragemAtual - parseFloat(ultimoTanqueCheio.quilometragem);
+          const consumo = kmPercorridos / litrosAtuais;
+          
+          if (consumo > 0) {
+            document.getElementById('consumoMedio').value = consumo.toFixed(2);
+            consumoMedioGroup.style.display = 'block';
+          } else {
+            consumoMedioGroup.style.display = 'none';
+          }
+        } else {
+          consumoMedioGroup.style.display = 'none';
+        }
+      } else {
+        consumoMedioGroup.style.display = 'none';
+      }
+    }
+
+    document.getElementById('tanqueCheio').addEventListener('change', calcularConsumo);
+    document.getElementById('quilometragem').addEventListener('input', calcularConsumo);
+    document.getElementById('litros').addEventListener('input', calcularConsumo);
+
+    // Search for gas station address
+    async function buscarEnderecoPosto() {
+      const cep = document.getElementById('cepPosto').value.replace(/\D/g, '');
+      
+      if (cep.length !== 8) {
+        mostrarMensagem('CEP deve ter 8 dígitos', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`https://brasilapi.com.br/api/cep/v1/${cep}`);
+        const data = await response.json();
+        
+        if (response.ok) {
+          const endereco = `${data.street}, ${data.neighborhood}, ${data.city} - ${data.state}`;
+          document.getElementById('enderecoTexto').textContent = endereco;
+          document.getElementById('enderecoInfo').style.display = 'block';
+        } else {
+          mostrarMensagem('CEP não encontrado', 'error');
+          document.getElementById('enderecoInfo').style.display = 'none';
+        }
+      } catch (error) {
+        mostrarMensagem('Erro ao buscar CEP', 'error');
+        document.getElementById('enderecoInfo').style.display = 'none';
+      }
+    }
+
+    // Form submission
+    document.getElementById('abastecimentoForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      
+      const data = document.getElementById('data').value;
+      const posto = document.getElementById('posto').value;
+      const cepPosto = document.getElementById('cepPosto').value;
+      const tipoCombustivel = document.getElementById('tipoCombustivel').value;
+      const litros = document.getElementById('litros').value;
+      const precoPorLitro = document.getElementById('precoPorLitro').value;
+      const valorTotal = document.getElementById('valorTotal').value;
+      const quilometragem = document.getElementById('quilometragem').value;
+      const tanqueCheio = document.getElementById('tanqueCheio').checked;
+      const consumoMedio = document.getElementById('consumoMedio').value || null;
+      const observacoes = document.getElementById('observacoes').value;
+      
+      // Validate date is not in the future
+      if (new Date(data) > new Date(hoje)) {
+        mostrarMensagem('A data não pode ser futura', 'error');
+        return;
+      }
+      
+      // Validate km is greater than or equal to last record
+      const abastecimentos = obterAbastecimentos(usuario.id);
+      if (abastecimentos.length > 0) {
+        const ultimaQuilometragem = Math.max(...abastecimentos.map(a => parseFloat(a.quilometragem)));
+        if (parseFloat(quilometragem) < ultimaQuilometragem) {
+          mostrarMensagem('A quilometragem deve ser maior ou igual ao último abastecimento', 'error');
+          return;
+        }
+      }
+      
+      // Create fuel record
+      const novoAbastecimento = {
+        id: Date.now(),
+        userId: usuario.id,
+        data,
+        posto,
+        cepPosto,
+        tipoCombustivel,
+        litros,
+        precoPorLitro,
+        valorTotal,
+        quilometragem,
+        tanqueCheio,
+        consumoMedio,
+        observacoes
+      };
+      
+      abastecimentos.push(novoAbastecimento);
+      salvarAbastecimentos(usuario.id, abastecimentos);
+      
+      mostrarMensagem('Abastecimento registrado com sucesso!', 'success');
+      setTimeout(() => {
+        window.location.href = 'meus-abastecimentos.html';
+      }, 1500);
+    });
+  </script>
+</body>
+</html>

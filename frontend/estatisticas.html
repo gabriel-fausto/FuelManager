@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Estatísticas - FuelManager Pro</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <header>
+    <div class="container">
+      <h1>FuelManager Pro</h1>
+      <nav>
+        <ul>
+          <li><a href="dashboard.html">Dashboard</a></li>
+          <li><a href="abastecimento.html">Registrar</a></li>
+          <li><a href="meus-abastecimentos.html">Meus Abastecimentos</a></li>
+          <li><a href="estatisticas.html">Estatísticas</a></li>
+          <li><a href="clima.html">Clima</a></li>
+          <li><a href="#" onclick="sair(); return false;">Sair</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <div class="card">
+      <h2>Estatísticas e Análises</h2>
+      <button class="btn btn-primary" onclick="atualizarDados()">Atualizar Dados</button>
+    </div>
+
+    <div id="loading" class="loading" style="display: none;">
+      Carregando análises
+    </div>
+
+    <div id="estatisticasContent" style="display: none;">
+      <!-- Análise de Consumo -->
+      <div class="secao-estatistica">
+        <h2>📊 Análise de Consumo</h2>
+        <div class="stat-item">
+          <div class="stat-label">Consumo Médio Geral</div>
+          <div class="stat-valor" id="consumoMedioGeral">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Tendência de Consumo</div>
+          <div class="stat-valor" id="tendenciaConsumo">-</div>
+        </div>
+      </div>
+
+      <!-- Preferências -->
+      <div class="secao-estatistica">
+        <h2>⭐ Preferências</h2>
+        <div class="stat-item">
+          <div class="stat-label">Combustível Mais Usado</div>
+          <div class="stat-valor" id="combustivelMaisUsado">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Posto Mais Frequentado</div>
+          <div class="stat-valor" id="postoMaisFrequentado">-</div>
+        </div>
+      </div>
+
+      <!-- Análise Financeira -->
+      <div class="secao-estatistica">
+        <h2>💰 Análise Financeira</h2>
+        <div class="stat-item">
+          <div class="stat-label">Gasto Médio por Mês</div>
+          <div class="stat-valor" id="gastoMedioPorMes">-</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Km Total Percorridos</div>
+          <div class="stat-valor" id="kmTotalPercorridos">-</div>
+        </div>
+      </div>
+
+      <!-- Alertas -->
+      <div class="secao-estatistica">
+        <h2>⚠️ Alertas</h2>
+        <ul class="alertas-lista" id="alertasLista">
+          <li>Nenhum alerta no momento</li>
+        </ul>
+      </div>
+    </div>
+
+    <div id="emptyState" class="empty-state">
+      <h3>Sem dados suficientes</h3>
+      <p>Registre mais abastecimentos para ver suas estatísticas!</p>
+      <a href="abastecimento.html" class="btn btn-primary" style="margin-top: 15px;">Registrar Abastecimento</a>
+    </div>
+  </div>
+
+  <script src="js/auth.js"></script>
+  <script>
+    // Verify authentication
+    const usuario = verificarAutenticacao();
+    if (!usuario) {
+      window.location.href = 'index.html';
+    }
+
+    async function atualizarDados() {
+      const abastecimentos = obterAbastecimentos(usuario.id);
+
+      if (abastecimentos.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+        document.getElementById('estatisticasContent').style.display = 'none';
+        return;
+      }
+
+      document.getElementById('emptyState').style.display = 'none';
+      document.getElementById('loading').style.display = 'block';
+      document.getElementById('estatisticasContent').style.display = 'none';
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/analise/consumo`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ abastecimentos })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          // Update UI with data
+          document.getElementById('consumoMedioGeral').textContent = 
+            data.consumoMedioGeral > 0 ? `${data.consumoMedioGeral.toFixed(2)} Km/L` : 'N/A';
+          
+          document.getElementById('tendenciaConsumo').textContent = 
+            getTendenciaIcon(data.tendenciaConsumo) + ' ' + capitalizeFirst(data.tendenciaConsumo);
+          
+          document.getElementById('combustivelMaisUsado').textContent = data.combustivelMaisUsado;
+          
+          document.getElementById('postoMaisFrequentado').textContent = data.postoMaisFrequentado;
+          
+          document.getElementById('gastoMedioPorMes').textContent = 
+            formatarMoeda(data.gastoMedioPorMes);
+          
+          document.getElementById('kmTotalPercorridos').textContent = 
+            `${data.kmTotalPercorridos.toFixed(2)} Km`;
+
+          // Update alertas
+          const alertasLista = document.getElementById('alertasLista');
+          if (data.alertas && data.alertas.length > 0) {
+            alertasLista.innerHTML = data.alertas.map(a => `<li>${a}</li>`).join('');
+          } else {
+            alertasLista.innerHTML = '<li style="background: #d4edda; border-left-color: #28a745; color: #155724;">Nenhum alerta no momento</li>';
+          }
+
+          document.getElementById('loading').style.display = 'none';
+          document.getElementById('estatisticasContent').style.display = 'block';
+        } else {
+          mostrarMensagem('Erro ao carregar estatísticas', 'error');
+          document.getElementById('loading').style.display = 'none';
+        }
+      } catch (error) {
+        mostrarMensagem('Erro ao conectar com o servidor', 'error');
+        document.getElementById('loading').style.display = 'none';
+      }
+    }
+
+    function getTendenciaIcon(tendencia) {
+      if (tendencia === 'melhorando') return '📈';
+      if (tendencia === 'piorando') return '📉';
+      return '➡️';
+    }
+
+    function capitalizeFirst(str) {
+      return str.charAt(0).toUpperCase() + str.slice(1);
+    }
+
+    // Check if there's data on load
+    window.addEventListener('load', () => {
+      const abastecimentos = obterAbastecimentos(usuario.id);
+      if (abastecimentos.length === 0) {
+        document.getElementById('emptyState').style.display = 'block';
+      }
+    });
+  </script>
+</body>
+</html>
